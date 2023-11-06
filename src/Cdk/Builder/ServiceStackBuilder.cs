@@ -228,8 +228,12 @@ public class ServiceStackBuilder
                 Timeout = Duration.Seconds(2),
                 Retries = 3,
                 StartPeriod = Duration.Seconds(10),
-            }
-            //TODO: ReadonlyRootFilesystem = true
+            },
+            ReadonlyRootFilesystem = true,
+            Environment = new Dictionary<string, string> {
+                //{ "ASPNETCORE_ENVIRONMENT", _config.EnvName }, // This could be cool
+                {"COMPlus_EnableDiagnostics", "0"},
+            },
         });
 
         var serviceName = $"{_config.AppName}-{_config.ServiceName}-service-{_config.EnvName}";
