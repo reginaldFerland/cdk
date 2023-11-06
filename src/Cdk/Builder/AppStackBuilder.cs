@@ -1,7 +1,9 @@
 
+using System.Net;
 using System.Runtime.CompilerServices;
 using System.Text;
 using Amazon.CDK;
+using Amazon.CDK.AWS.EC2;
 using Amazon.CDK.AWS.ECR;
 using Amazon.CDK.AWS.ECS;
 using Amazon.CDK.AWS.OpenSearchService;
@@ -71,45 +73,13 @@ class AppStackBuilder
         return this;
     }
 
-    internal AppStackBuilder WithContainerRegistry()
-    {
-        var registryName = new StringBuilder();
-            registryName.Append(_appName).Append("-registry-").Append(_envName);
-
-        var containerRegistry = new Repository(_stack, registryName.ToString(), new RepositoryProps {
-            RepositoryName = registryName.ToString(),
-            RemovalPolicy = RemovalPolicy.DESTROY,
-            Encryption = RepositoryEncryption.KMS,
-            ImageScanOnPush = true,
-            LifecycleRules = new LifecycleRule[] {
-                new LifecycleRule {
-                    MaxImageCount = 3,
-                    TagStatus = TagStatus.ANY,
-                }
-            }
-        });
-
-        // Paramstore - Do we need the URI or just set a url per env?
-        var param = new StringParameter(_stack, "RegistryParam", new StringParameterProps {
-            ParameterName = _parameterStoreBase + "/RegistryUri",
-            StringValue = containerRegistry.RepositoryUri
-        });
- 
-        return this;
-    }
-
-    internal AppStackBuilder WithContainerService()
-    {
-        WithContainerService(out _);
-        return this;
-    }
-
-    internal AppStackBuilder WithContainerService(out Cluster containerService)
+    internal AppStackBuilder WithContainerCluster(out Cluster containerService, Vpc vpc)
     {
         var serviceName = new StringBuilder();
             serviceName.Append(_appName).Append("-service-").Append(_envName);
 
         containerService = new Cluster(_stack, serviceName.ToString(), new ClusterProps {
+            Vpc = vpc,
             ClusterName = serviceName.ToString(),
             ContainerInsights = true,
         });
@@ -119,11 +89,40 @@ class AppStackBuilder
         return this;
     }
 
+    // Create VPC
+    internal AppStackBuilder WithVpc(out Vpc vpc)
+    {
+        var vpcName = $"{_appName}-vpc";
+
+        var props = new VpcProps {
+            IpAddresses = IpAddresses.Cidr("10.10.0.0/16"),
+            ReservedAzs = 2,
+            VpcName = vpcName,
+            SubnetConfiguration = new [] {
+                new SubnetConfiguration {
+                    CidrMask = 24,
+                    Name = "public",
+                    SubnetType = SubnetType.PUBLIC,
+                },
+                new SubnetConfiguration {
+                    CidrMask = 24,
+                    Name = "private",
+                    SubnetType = SubnetType.PRIVATE_WITH_EGRESS,
+                },
+                new SubnetConfiguration {
+                    CidrMask = 20,
+                    Name = "Isolated",
+                    SubnetType = SubnetType.PRIVATE_ISOLATED,
+                },
+            },
+        };
+
+        vpc = new Vpc(_stack, vpcName, props);
+
+        return this;
+    }
+
+
     // Create API Gateway
 
-    internal Stack Build()
-    {
-        // Method logic here
-        return _stack;
-    }
 }

@@ -17,19 +17,19 @@ namespace Cdk
 
             var globalConfig = new ExampleLocalConfig();
             var globalItems = new AppStackBuilder(app, globalConfig)
-                .WithOpenSearch()
-                .WithContainerRegistry()
-                .WithContainerService()
-                .Build();
+                //.WithOpenSearch()
+                .WithVpc(out var vpc)
+                .WithContainerCluster(out var cluster, vpc);
 
             var notificationConfig = new NotificationLocalConfig();
             var notificationService = new ServiceStackBuilder(app, notificationConfig)
-                .WithDatabaseCluster()
-                .WithClusterInstance()
-                .WithSnsTopic("sendEmailRequest", out var topic)
-                .WithSqsQueue("sendEmailQueue", out var queue)
-                .WithSubscription(topic, queue)
-                .Build();
+                .WithContainerRegistry()
+//                .WithDatabaseCluster()
+                .WithService(cluster);
+                //.WithClusterInstance()
+                //.WithSnsTopic("sendEmailRequest", out var topic)
+                //.WithSqsQueue("sendEmailQueue", out var queue)
+                //.WithSubscription(topic, queue)
 
             app.Synth();
         }
